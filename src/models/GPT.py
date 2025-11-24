@@ -1,7 +1,6 @@
 from openai import OpenAI
 from .Model import Model
 
-
 class GPT(Model):
     def __init__(self, config):
         super().__init__(config)
@@ -9,7 +8,13 @@ class GPT(Model):
         api_pos = int(config["api_key_info"]["api_key_use"])
         assert (0 <= api_pos < len(api_keys)), "Please enter a valid API key to use"
         self.max_output_tokens = int(config["params"]["max_output_tokens"])
-        self.client = OpenAI(api_key=api_keys[api_pos])
+        
+        # --- MODIFIED: USE GROQ (FREE) INSTEAD OF OPENAI ---
+        self.client = OpenAI(
+            api_key=api_keys[api_pos],
+            base_url="https://api.groq.com/openai/v1"
+        )
+        # ---------------------------------------------------
 
     def query(self, msg):
         try:
@@ -23,9 +28,9 @@ class GPT(Model):
                 ],
             )
             response = completion.choices[0].message.content
-           
+            
         except Exception as e:
-            print(e)
+            print(f"API Error: {e}")
             response = ""
 
         return response

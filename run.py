@@ -1,10 +1,15 @@
 import os
+import time
 
 def run(test_params):
-
+    # Get the log name for file saving within main.py
     log_file, log_name = get_log_name(test_params)
 
-    cmd = f"nohup python3 -u main.py \
+    # --- MODIFIED COMMAND ---
+    # 1. Removed 'nohup' (so it runs in foreground)
+    # 2. Removed '&' (so it waits for completion)
+    # 3. Removed '> {log_file}' (so output prints to screen)
+    cmd = f"python3 -u main.py \
         --eval_model_code {test_params['eval_model_code']}\
         --eval_dataset {test_params['eval_dataset']}\
         --split {test_params['split']}\
@@ -19,14 +24,17 @@ def run(test_params):
         --repeat_times {test_params['repeat_times']}\
         --M {test_params['M']}\
         --seed {test_params['seed']}\
-        --name {log_name}\
-        > {log_file} &"
+        --name {log_name}"
         
+    print(f"[-] Starting attack on {test_params['eval_dataset']} with {test_params['model_name']}...")
+    print(f"[-] Executing command: {cmd}\n")
+    
+    # Execute the command locally
     os.system(cmd)
 
 
 def get_log_name(test_params):
-    # Generate a log file name
+    # Generate a log file name (folder structure)
     os.makedirs(f"logs/{test_params['query_results_dir']}_logs", exist_ok=True)
 
     if test_params['use_truth']:
@@ -43,7 +51,7 @@ def get_log_name(test_params):
     return f"logs/{test_params['query_results_dir']}_logs/{log_name}.txt", log_name
 
 
-
+# --- CONFIGURATION ---
 test_params = {
     # beir_info
     'eval_model_code': "contriever",
@@ -52,7 +60,9 @@ test_params = {
     'query_results_dir': 'main',
 
     # LLM setting
-    'model_name': 'palm2', 
+    # CHANGED: Use gpt-3.5-turbo for cheaper/faster testing. 
+    # Change back to 'gpt-4-0613' if you have the budget/access.
+    'model_name': 'gpt-3.5-turbo', 
     'use_truth': False,
     'top_k': 5,
     'gpu_id': 0,
@@ -68,6 +78,14 @@ test_params = {
     'note': None
 }
 
-for dataset in ['nq', 'hotpotqa', 'msmarco']:
+# --- EXECUTION LOOP ---
+# We only run 'nq' (Natural Questions) to start. 
+# Running multiple at once on 16GB RAM is risky.
+target_datasets = ['nq'] 
+# target_datasets = ['nq', 'hotpotqa', 'msmarco'] # Uncomment this later if NQ works
+
+for dataset in target_datasets:
     test_params['eval_dataset'] = dataset
     run(test_params)
+    print(f"\n[+] Finished {dataset}. Sleeping for 5 seconds...\n")
+    time.sleep(5)
